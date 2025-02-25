@@ -1,0 +1,232 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Product Explorer</title>
+    <style>
+        /* General Styles */
+        body {
+            font-family: 'Arial', sans-serif;
+            background: #f0f2f5;
+            margin: 0;
+            padding: 0;
+            color: #333;
+        }
+        .container {
+            width: 90%;
+            max-width: 1200px;
+            margin: 20px auto;
+            padding: 20px;
+            background: #fff;
+            border-radius: 10px;
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+        }
+        h2 {
+            text-align: center;
+            color: #444;
+            font-size: 2em;
+        }
+
+        /* Filter and Search Section */
+        .filter-section, .search-section {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 10px;
+            justify-content: center;
+            margin-bottom: 20px;
+        }
+        select, input[type="number"], input[type="text"] {
+            padding: 10px;
+            font-size: 14px;
+            border-radius: 5px;
+            border: 1px solid #ccc;
+            outline: none;
+            transition: box-shadow 0.3s ease;
+        }
+        select:focus, input:focus {
+            box-shadow: 0 0 5px #007bff;
+        }
+
+        /* Product Card Styles */
+        #productsContainer {
+            display: flex;
+            flex-wrap: wrap;
+            justify-content: center;
+            gap: 20px;
+        }
+        .product-card {
+            background: #fff;
+            border-radius: 10px;
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+            transition: transform 0.3s ease;
+            width: 280px;
+            padding: 20px;
+            text-align: center;
+        }
+        .product-card:hover {
+            transform: translateY(-10px);
+        }
+        .product-card img {
+            width: 150px;
+            height: 150px;
+            object-fit: contain;
+            margin-bottom: 15px;
+        }
+        .product-card h3 {
+            font-size: 18px;
+            color: #333;
+            min-height: 50px;
+            margin: 10px 0;
+        }
+        .product-card p {
+            color: #666;
+            font-size: 16px;
+        }
+        .product-card s {
+            color: #999;
+        }
+        .product-card strong {
+            color: #e67e22;
+            font-size: 20px;
+        }
+
+        /* Responsive Design */
+        @media(max-width: 768px) {
+            .product-card {
+                width: 80%;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h2>Product Explorer</h2>
+        
+        <!-- Filtering Section -->
+        <div class="filter-section">
+            <select id="categoryFilter" onchange="applyFilters()">
+                <option value="">All Categories</option>
+            </select>
+            <input type="number" id="minPrice" placeholder="Min Price" oninput="applyFilters()">
+            <input type="number" id="maxPrice" placeholder="Max Price" oninput="applyFilters()">
+        </div>
+        
+        <!-- Search and Currency Section -->
+        <div class="search-section">
+            <input type="text" id="searchBox" placeholder="Search for a product..." oninput="searchProducts()">
+            <select id="currencySelect" onchange="updateCurrency()">
+                <option value="USD">US Dollar (USD)</option>
+                <option value="INR">Indian Rupee (INR)</option>
+                <option value="EUR">Euro (EUR)</option>
+                <option value="GBP">British Pound (GBP)</option>
+                <option value="JPY">Japanese Yen (JPY)</option>
+                <option value="CAD">Canadian Dollar (CAD)</option>
+            </select>
+        </div>
+
+        <!-- Products Container -->
+        <div id="productsContainer"></div>
+    </div>
+
+    <script>
+        var productsData = [];
+        var exchangeRates = { "USD": 1 };
+
+        // Fetch products from API
+        function fetchProducts() {
+            fetch('https://fakestoreapi.com/products')
+                .then(res => res.json())
+                .then(products => {
+                    productsData = products;
+                    applyFilters();
+                });
+        }
+
+        // Fetch product categories from API
+        function fetchCategories() {
+            fetch('https://fakestoreapi.com/products/categories')
+                .then(res => res.json())
+                .then(categories => {
+                    var categoryFilter = document.getElementById('categoryFilter');
+                    categories.forEach(category => {
+                        categoryFilter.innerHTML += `<option value="${category}">${category}</option>`;
+                    });
+                });
+        }
+
+        // Fetch currency exchange rates
+        function fetchExchangeRates(targetCurrency) {
+            var url = `https://api.frankfurter.app/latest?from=USD&to=${targetCurrency}`;
+            fetch(url)
+                .then(res => res.json())
+                .then(response => {
+                    exchangeRates[targetCurrency] = response.rates[targetCurrency] || 1;
+                    displayProducts(productsData);
+                });
+        }
+
+        // Filter products based on category and price range
+        function applyFilters() {
+            var category = document.getElementById('categoryFilter').value;
+            var minPrice = document.getElementById('minPrice').value;
+            var maxPrice = document.getElementById('maxPrice').value;
+
+            var filteredProducts = productsData.filter(product => {
+                var matchesCategory = category === "" || product.category === category;
+                var matchesMinPrice = minPrice === "" || product.price >= parseFloat(minPrice);
+                var matchesMaxPrice = maxPrice === "" || product.price <= parseFloat(maxPrice);
+                return matchesCategory && matchesMinPrice && matchesMaxPrice;
+            });
+
+            displayProducts(filteredProducts);
+        }
+
+        // Search products by title
+        function searchProducts() {
+            var query = document.getElementById('searchBox').value.toLowerCase();
+            var filteredProducts = productsData.filter(product => 
+                product.title.toLowerCase().includes(query)
+            );
+            displayProducts(filteredProducts);
+        }
+
+        // Display products in the container
+        function displayProducts(products) {
+            var container = document.getElementById('productsContainer');
+            container.innerHTML = "";
+            var selectedCurrency = document.getElementById('currencySelect').value;
+            var conversionRate = exchangeRates[selectedCurrency] || 1;
+
+            products.forEach(product => {
+                var originalPrice = product.price;
+                var discountedPrice = originalPrice * 0.95;
+                var convertedPrice = (discountedPrice * conversionRate).toFixed(2);
+
+                container.innerHTML += `
+                    <div class="product-card">
+                        <img src="${product.image}" alt="${product.title}">
+                        <h3>${product.title}</h3>
+                        <p><s>${(originalPrice * conversionRate).toFixed(2)} ${selectedCurrency}</s></p>
+                        <p><strong>${convertedPrice} ${selectedCurrency}</strong></p>
+                    </div>
+                `;
+            });
+        }
+
+        // Update currency rates and product prices
+        function updateCurrency() {
+            var selectedCurrency = document.getElementById('currencySelect').value;
+            if (selectedCurrency === "USD") {
+                displayProducts(productsData);
+            } else {
+                fetchExchangeRates(selectedCurrency);
+            }
+        }
+
+        // Initial Fetch Calls
+        fetchCategories();
+        fetchProducts();
+    </script>
+</body>
+</html>
