@@ -80,8 +80,9 @@ Contributions are welcome! To contribute:
 ---
 
 ## 📜 License
+This project is licensed under the **MIT License**.  
+See the full license [here](https://github.com/ThakurAmanKumar/License/blob/main/LICENSE).
 
-This project is licensed under the MIT License.
 
 ---
 
